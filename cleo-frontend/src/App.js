@@ -51,11 +51,11 @@ export default function HomeScreen() {
       <div className="grid grid-cols-2 gap-4 mb-6">
         <button className="bg-green-500 p-4 rounded-xl flex flex-col items-center hover:bg-green-600 transition">
           <FaMicrophone className="text-3xl" />
-          <p className="mt-2">Talk with Echo</p>
+          <p className="mt-2">Talk with cleo</p>
         </button>
         <button className="bg-green-300 p-4 rounded-xl flex flex-col items-center hover:bg-green-400 transition">
           <FaComment className="text-3xl" />
-          <p className="mt-2">Chat With Echo</p>
+          <p className="mt-2">Chat With cleo</p>
         </button>
         <button className="bg-gray-700 p-4 rounded-xl flex flex-col items-center hover:bg-gray-600 transition">
           <FaImage className="text-3xl" />
