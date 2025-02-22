@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import io from "socket.io-client";
 
-const socket = io("http://localhost:3000"); // Replace with backend URL when deployed
+const socket = io("http://localhost:5000"); // Replace with backend URL when deployed
 
 function App() {
   const [message, setMessage] = useState("");
