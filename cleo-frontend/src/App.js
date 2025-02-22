@@ -1,118 +1,198 @@
 import React, { useState, useEffect, useRef } from "react";
-import io from "socket.io-client";
-import { FaMicrophone, FaComment, FaImage, FaHome, FaVideo, FaBars, FaPaperPlane, FaMoon, FaSun } from "react-icons/fa";
+import { io } from "socket.io-client";
+import Peer from "simple-peer";
+import "./App.css";
 
-const socket = io("http://localhost:5000"); // Change for deployment
+const socket = io("http://localhost:5000");
 
-export default function HomeScreen() {
-  const [darkMode, setDarkMode] = useState(true);
-  const [message, setMessage] = useState("");
+function App() {
+  const [me, setMe] = useState("");
+  const [stream, setStream] = useState(null);
+  const [receivingCall, setReceivingCall] = useState(false);
+  const [caller, setCaller] = useState("");
+  const [callerSignal, setCallerSignal] = useState(null);
+  const [callAccepted, setCallAccepted] = useState(false);
+  const [callEnded, setCallEnded] = useState(false);
+  const [idToCall, setIdToCall] = useState("");
   const [messages, setMessages] = useState([]);
-  const chatRef = useRef(null);
+  const [message, setMessage] = useState("");
+  const [aiMessages, setAiMessages] = useState([]);
+  const [aiInput, setAiInput] = useState("");
+  const [loadingAI, setLoadingAI] = useState(false);
+
+  const myVideo = useRef();
+  const userVideo = useRef();
+  const connectionRef = useRef();
 
   useEffect(() => {
-    socket.on("message", (data) => {
-      setMessages((prev) => [...prev, { text: data, isOwn: false }]);
+    navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then((currentStream) => {
+      setStream(currentStream);
+      myVideo.current.srcObject = currentStream;
     });
 
-    return () => socket.off("message");
+    socket.on("me", (id) => setMe(id));
+
+    socket.on("callIncoming", ({ from, signal }) => {
+      setReceivingCall(true);
+      setCaller(from);
+      setCallerSignal(signal);
+    });
+
+    socket.on("receiveMessage", ({ sender, message }) => {
+      setMessages((prev) => [...prev, { sender, message }]);
+    });
+
+    socket.on("receiveAIResponse", ({ message }) => {
+      setAiMessages((prev) => [...prev, { sender: "Cleo (AI)", message }]);
+      setLoadingAI(false);
+    });
+
+    socket.on("userDisconnected", (id) => {
+      if (id === caller) {
+        leaveCall();
+      }
+    });
+
+    return () => {
+      socket.off("me");
+      socket.off("callIncoming");
+      socket.off("receiveMessage");
+      socket.off("receiveAIResponse");
+      socket.off("userDisconnected");
+    };
   }, []);
+
+  const callUser = (id) => {
+    const peer = new Peer({ initiator: true, trickle: false, stream });
+
+    peer.on("signal", (data) => {
+      socket.emit("callUser", { userToCall: id, signalData: data, from: me });
+    });
+
+    peer.on("stream", (userStream) => {
+      userVideo.current.srcObject = userStream;
+    });
+
+    socket.on("callAccepted", (signal) => {
+      setCallAccepted(true);
+      peer.signal(signal);
+    });
+
+    connectionRef.current = peer;
+  };
+
+  const answerCall = () => {
+    setCallAccepted(true);
+    const peer = new Peer({ initiator: false, trickle: false, stream });
+
+    peer.on("signal", (data) => {
+      socket.emit("answerCall", { signal: data, to: caller });
+    });
+
+    peer.on("stream", (userStream) => {
+      userVideo.current.srcObject = userStream;
+    });
+
+    peer.signal(callerSignal);
+    connectionRef.current = peer;
+  };
+
+  const leaveCall = () => {
+    setCallEnded(true);
+    if (connectionRef.current) connectionRef.current.destroy();
+    window.location.reload();
+  };
 
   const sendMessage = () => {
     if (message.trim()) {
-      setMessages((prev) => [...prev, { text: message, isOwn: true }]);
-      socket.emit("message", message);
+      socket.emit("sendMessage", { sender: me, message });
+      setMessages((prev) => [...prev, { sender: "Me", message }]);
       setMessage("");
     }
   };
 
-  useEffect(() => {
-    if (chatRef.current) {
-      chatRef.current.scrollTop = chatRef.current.scrollHeight;
+  const sendAiMessage = () => {
+    if (aiInput.trim()) {
+      setAiMessages((prev) => [...prev, { sender: "Me", message: aiInput }]);
+      setLoadingAI(true);
+      socket.emit("sendMessage", { sender: me, message: aiInput });
+      setAiInput("");
     }
-  }, [messages]);
+  };
 
   return (
-    <div className={`min-h-screen ${darkMode ? "bg-black text-white" : "bg-white text-gray-900"} p-6`}>
-      {/* Header */}
-      <header className="flex justify-between items-center mb-6">
-        <FaBars className="text-2xl cursor-pointer" />
-        <h1 className="text-2xl font-bold">
-          Hello, <span className="text-green-400">James</span>
-        </h1>
-        <button onClick={() => setDarkMode(!darkMode)} className="text-xl p-2 rounded-md">
-          {darkMode ? <FaSun className="text-yellow-400" /> : <FaMoon className="text-gray-600" />}
-        </button>
-      </header>
+    <div className="container">
+      <h1>Chat & Video Call App</h1>
 
-      <h2 className="text-lg mb-4">How can I assist you today?</h2>
-
-      {/* Action Cards */}
-      <div className="grid grid-cols-2 gap-4 mb-6">
-        <button className="bg-green-500 p-4 rounded-xl flex flex-col items-center hover:bg-green-600 transition">
-          <FaMicrophone className="text-3xl" />
-          <p className="mt-2">Talk with Echo</p>
-        </button>
-        <button className="bg-green-300 p-4 rounded-xl flex flex-col items-center hover:bg-green-400 transition">
-          <FaComment className="text-3xl" />
-          <p className="mt-2">Chat With Echo</p>
-        </button>
-        <button className="bg-gray-700 p-4 rounded-xl flex flex-col items-center hover:bg-gray-600 transition">
-          <FaImage className="text-3xl" />
-          <p className="mt-2">Search By Image</p>
-        </button>
-        <button className="bg-blue-500 p-4 rounded-xl flex flex-col items-center hover:bg-blue-600 transition">
-          <FaVideo className="text-3xl" />
-          <p className="mt-2">Start Video Call</p>
-        </button>
+      {/* Video Call Section */}
+      <div className="video-section">
+        <div className="video">
+          <h3>My Video</h3>
+          <video ref={myVideo} playsInline muted autoPlay />
+        </div>
+        <div className="video">
+          <h3>Partner's Video</h3>
+          {callAccepted && !callEnded && <video ref={userVideo} playsInline autoPlay />}
+        </div>
       </div>
 
-      {/* Real-Time Chat */}
-      <h2 className="text-lg mt-6 mb-2">Real-Time Chat</h2>
-      <div ref={chatRef} className="border border-gray-400 p-4 h-48 overflow-y-scroll bg-gray-800 rounded-md flex flex-col">
-        {messages.map((msg, index) => (
-          <div
-            key={index}
-            className={`p-3 my-1 max-w-xs rounded-xl ${msg.isOwn ? "bg-green-500 self-end text-white" : "bg-gray-600 self-start text-white"} shadow-md`}
-          >
-            {msg.text}
+      {/* Call Controls */}
+      <div className="call-controls">
+        <h3>Your ID: {me}</h3>
+        <button onClick={() => navigator.clipboard.writeText(me)}>Copy ID</button>
+        <input type="text" placeholder="Enter ID to call" onChange={(e) => setIdToCall(e.target.value)} />
+        <button onClick={() => callUser(idToCall)}>Call</button>
+        {receivingCall && !callAccepted && (
+          <div>
+            <h4>Incoming Call...</h4>
+            <button onClick={answerCall}>Answer</button>
           </div>
-        ))}
+        )}
+        {callAccepted && !callEnded && <button onClick={leaveCall}>End Call</button>}
       </div>
 
-      {/* Input Bar */}
-      <div className="flex mt-2">
-        <input
-          type="text"
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          placeholder="Type a message..."
-          className="flex-1 p-3 bg-gray-700 text-white rounded-l-md focus:outline-none"
+      {/* Chat Section */}
+      <div className="chat-section">
+        <h3>Chat</h3>
+        <div className="chat-box">
+          {messages.map((msg, index) => (
+            <p key={index}>
+              <strong>{msg.sender}</strong>: {msg.message}
+            </p>
+          ))}
+        </div>
+        <input 
+          type="text" 
+          value={message} 
+          onChange={(e) => setMessage(e.target.value)} 
+          placeholder="Type a message..." 
         />
-        <button
-          onClick={sendMessage}
-          disabled={!message.trim()}
-          className={`p-3 rounded-r-md ${message.trim() ? "bg-green-500 hover:bg-green-600" : "bg-gray-500 cursor-not-allowed"} transition`}
-        >
-          <FaPaperPlane />
-        </button>
+        <button onClick={sendMessage}>Send</button>
       </div>
 
-      {/* Footer */}
-      <footer className="fixed bottom-4 left-0 w-full flex justify-around p-4 bg-black bg-opacity-30 backdrop-blur-lg rounded-lg">
-        <button className="flex flex-col items-center text-white hover:text-green-400 transition">
-          <FaHome className="text-2xl" />
-          <span className="text-sm">Home</span>
-        </button>
-        <button className="flex flex-col items-center text-white hover:text-green-400 transition">
-          <FaComment className="text-2xl" />
-          <span className="text-sm">Chat</span>
-        </button>
-        <button className="flex flex-col items-center text-white hover:text-green-400 transition">
-          <FaVideo className="text-2xl" />
-          <span className="text-sm">Call</span>
-        </button>
-      </footer>
+      {/* AI Chat Section */}
+      <div className="ai-chat-section">
+        <h3>💡 Talk to Cleo (AI)</h3>
+        <div className="chat-box">
+          {aiMessages.map((msg, index) => (
+            <p key={index}>
+              <strong style={{ color: msg.sender === "Cleo (AI)" ? "blue" : "black" }}>
+                {msg.sender}
+              </strong>: {msg.message}
+            </p>
+          ))}
+          {loadingAI && <p style={{ color: "gray" }}><strong>Cleo (AI)</strong>: Typing...</p>}
+        </div>
+        <input 
+          type="text" 
+          value={aiInput} 
+          onChange={(e) => setAiInput(e.target.value)} 
+          placeholder="Ask something..." 
+        />
+        <button onClick={sendAiMessage}>Ask AI</button>
+      </div>
     </div>
   );
 }
+
+export default App;
