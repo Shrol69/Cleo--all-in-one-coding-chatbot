@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { io } from "socket.io-client";
 import Peer from "simple-peer";
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 import "./App.css";
 
 const socket = io("http://localhost:5000");
@@ -10,6 +11,11 @@ const socket = io("http://localhost:5000");
 const socket = io("http://localhost:5000"); // Make sure this matches your backend URL
 >>>>>>> Stashed changes
 
+=======
+
+const socket = io("http://localhost:5000"); // Make sure this matches your backend URL
+
+>>>>>>> Stashed changes
 function App() {
   const [me, setMe] = useState("");
   const [stream, setStream] = useState(null);
@@ -17,6 +23,7 @@ function App() {
   const [caller, setCaller] = useState("");
   const [callerSignal, setCallerSignal] = useState(null);
   const [callAccepted, setCallAccepted] = useState(false);
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
   const [callEnded, setCallEnded] = useState(false);
   const [idToCall, setIdToCall] = useState("");
@@ -26,6 +33,11 @@ function App() {
   const [aiInput, setAiInput] = useState("");
   const [loadingAI, setLoadingAI] = useState(false);
 
+=======
+  const [name, setName] = useState("User");
+  const [callEnded, setCallEnded] = useState(false);
+  const [idToCall, setIdToCall] = useState("");
+>>>>>>> Stashed changes
 =======
   const [name, setName] = useState("User");
   const [callEnded, setCallEnded] = useState(false);
@@ -44,7 +56,11 @@ function App() {
     socket.on("me", (id) => setMe(id));
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
     socket.on("callIncoming", ({ from, signal }) => {
+=======
+    socket.on("callIncoming", ({ from, name: callerName, signal }) => {
+>>>>>>> Stashed changes
 =======
     socket.on("callIncoming", ({ from, name: callerName, signal }) => {
 >>>>>>> Stashed changes
@@ -52,6 +68,7 @@ function App() {
       setCaller(from);
       setCallerSignal(signal);
     });
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
 
     socket.on("receiveMessage", ({ sender, message }) => {
@@ -78,6 +95,8 @@ function App() {
     };
 =======
 >>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
   }, []);
 
   const callUser = (id) => {
@@ -85,14 +104,20 @@ function App() {
 
     peer.on("signal", (data) => {
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
       socket.emit("callUser", { userToCall: id, signalData: data, from: me });
 =======
+=======
+>>>>>>> Stashed changes
       socket.emit("callUser", {
         userToCall: id,
         signalData: data,
         from: me,
         name,
       });
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
     });
 
@@ -106,6 +131,7 @@ function App() {
     });
 
     connectionRef.current = peer;
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
   };
 
@@ -200,18 +226,58 @@ function App() {
         <h2>My Video</h2>
         <video playsInline muted ref={myVideo} autoPlay style={{ width: "300px" }} />
       </div>
+=======
+  };
+
+  const answerCall = () => {
+    setCallAccepted(true);
+    const peer = new Peer({ initiator: false, trickle: false, stream });
+
+    peer.on("signal", (data) => {
+      socket.emit("answerCall", { signal: data, to: caller });
+    });
+
+    peer.on("stream", (userStream) => {
+      userVideo.current.srcObject = userStream;
+    });
+
+    peer.signal(callerSignal);
+    connectionRef.current = peer;
+  };
+
+  const leaveCall = () => {
+    setCallEnded(true);
+    connectionRef.current.destroy();
+    window.location.reload();
+  };
+
+  return (
+    <div>
+      <h1>Video Chat App</h1>
+      <div>
+        <h2>My Video</h2>
+        <video playsInline muted ref={myVideo} autoPlay style={{ width: "300px" }} />
+      </div>
+>>>>>>> Stashed changes
       <div>
         <h2>Partner's Video</h2>
         {callAccepted && !callEnded && <video playsInline ref={userVideo} autoPlay style={{ width: "300px" }} />}
       </div>
       <div>
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
         <input type="text" placeholder="Enter ID to call" onChange={(e) => setIdToCall(e.target.value)} />
         <button onClick={() => callUser(idToCall)}>Call</button>
         {receivingCall && !callAccepted && (
           <div>
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
             <h4>Incoming Call...</h4>
+=======
+            <h3>Incoming Call...</h3>
+>>>>>>> Stashed changes
 =======
             <h3>Incoming Call...</h3>
 >>>>>>> Stashed changes
@@ -220,6 +286,7 @@ function App() {
         )}
         {callAccepted && !callEnded && <button onClick={leaveCall}>End Call</button>}
       </div>
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
 
       {/* Chat Section */}
@@ -262,6 +329,8 @@ function App() {
         />
         <button onClick={sendAiMessage}>Ask AI</button>
       </div>
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
     </div>
