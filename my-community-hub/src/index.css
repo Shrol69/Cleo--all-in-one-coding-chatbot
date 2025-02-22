@@ -1,0 +1,13 @@
+/* Importing Tailwind's base styles */
+@tailwind base;
+
+/* Importing Tailwind's component styles */
+@tailwind components;
+
+/* Importing Tailwind's utility classes */
+@tailwind utilities;
+
+/* Custom styles (optional) */
+body {
+  font-family: 'Arial', sans-serif;
+}
